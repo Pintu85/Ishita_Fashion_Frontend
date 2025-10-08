@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 
-const storagePrefix = "unified_";
+const storagePrefix = "ishita_fashion_";
 
 const storage = {
   setToken: (token: string) => {

@@ -6,8 +6,8 @@ export const get = async (url:string) => {
 }
 
 export const post = async (url:string, data?: any) => {
-    const response = await api.post(url,data);
-    return response.data;
+  const response = await api.post(url,data);
+  return response.data;
 }
 
 export const put = async (url: string, data: any) => {

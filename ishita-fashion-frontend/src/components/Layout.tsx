@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
@@ -13,10 +19,13 @@ import {
     User,
     Settings,
     Menu,
-    X,
+    LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import storage from "@/utils/Storage";
+import { isTokenExpired, isNotNullUndefinedBlank } from "../helpers/Common";
+import { useNavigate } from "react-router-dom";
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -33,6 +42,17 @@ const menuItems = [
 export const Layout = ({ children }: { children: React.ReactNode }) => {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = storage.getToken();
+        if (isTokenExpired(token)) {
+            window.localStorage.clear();
+            navigate("/login");
+            return;
+        }
+
+    }, [navigate])
 
     const NavItems = ({ onItemClick }: { onItemClick?: () => void }) => (
         <>
@@ -101,9 +121,27 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                     <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
                         <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
-                        <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                                <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    storage.clearToken();
+                                    storage.clearUser();
+                                    navigate("/login");
+                                }}
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Logout
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
 

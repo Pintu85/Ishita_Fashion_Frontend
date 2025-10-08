@@ -14,6 +14,7 @@ import VendorPayment from "./pages/VendorPayment";
 import PaymentReceived from "./pages/PaymentReceived";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<LoginPage />}></Route>
           <Route path="/" element={<Layout><Dashboard /></Layout>} />
           <Route path="/vendors" element={<Layout><Vendors /></Layout>} />
           <Route path="/parties" element={<Layout><Parties /></Layout>} />
@@ -33,7 +35,6 @@ const App = () => (
           <Route path="/vendor-payment" element={<Layout><VendorPayment /></Layout>} />
           <Route path="/payment-received" element={<Layout><PaymentReceived /></Layout>} />
           <Route path="/reports" element={<Layout><Reports /></Layout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
