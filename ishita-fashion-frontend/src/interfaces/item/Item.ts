@@ -10,3 +10,9 @@ export interface IItem {
     isActive: boolean;
     createdAt?:string;
 }
+
+export interface IItemDropDownList {
+    itemID: string;
+    designNo: string;
+    itemName: string;
+}

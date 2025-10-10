@@ -15,7 +15,6 @@ export const useAddItem = (options?: UseMutationOptions< any, any, IItem, any>) 
             sellingPrice: data.sellingPrice,
             isActive: data.isActive
         }
-        console.log(payload);
         return await post("item/add",payload)
     },
     ...options
@@ -39,4 +38,13 @@ export const useDeleteItem = (options?: UseMutationOptions<any, any, any, any>) 
         },
         ...options
     })
+}
+
+export const useGetItemsDropDownList = (options: UseMutationOptions<any, any, any, any> ) => { 
+return useMutation({
+    mutationFn: async () => {
+        return await get("item/get-items-dropdown-list");
+    },
+    ...options
+})
 }

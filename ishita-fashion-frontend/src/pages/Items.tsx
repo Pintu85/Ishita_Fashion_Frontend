@@ -90,10 +90,8 @@ const Items = () => {
   }, [search]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    debugger
     e.preventDefault();
     e.currentTarget.reset();
-    console.log(vendorId);
     additemMutation.mutate({
       itemID: formData.itemID,
       designNo: formData.designNo,
@@ -191,7 +189,8 @@ const Items = () => {
   }
 
   const handleDeleteItem = (itemId: string) => {
-    if (vendorId != "") {
+
+    if (itemId != "") {
       deleteItemMutation.mutate({ itemId: itemId })
     }
   };
@@ -215,11 +214,9 @@ const Items = () => {
   })
 
   const onSearch = (value: string) => {
-    console.log(value);
     pageNumber.current = 1;
     setSearch(value);
   }
-
 
   return (
     <div>

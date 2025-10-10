@@ -262,8 +262,6 @@ const Parties = () => {
       cityId: party.cityID,
       cityName: party.cityName,
     });
-    console.log(party);
-    console.log(formData);
     getCitiesList("", "", party.stateID.toString());
     setOpen(true);
   };
