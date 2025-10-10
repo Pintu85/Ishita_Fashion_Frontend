@@ -12,4 +12,5 @@ export interface IParty {
   isActive: boolean;
   cityName: string;
   stateName:string;
+  createdAt? : string;
 }

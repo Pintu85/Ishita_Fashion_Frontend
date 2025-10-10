@@ -17,8 +17,8 @@ export const Pagination = ({
     onPageChange,
 }: PaginationProps) => {
     const totalPages = Math.ceil(totalCount / pageSize);
+    if (!Number.isFinite(totalPages) || totalPages <= 0) return null;
 
-    if (totalPages === 0) return null;
 
     const handlePrevious = () => {
         if (currentPage > 1) onPageChange(currentPage - 1);

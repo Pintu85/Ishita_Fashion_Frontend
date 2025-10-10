@@ -2,10 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader } from "@/components/ui/loader";
-import * as Form from "@radix-ui/react-form";
-import { Plus, Search, Edit, Trash, Import } from "lucide-react";
-import { Pagination } from "@/components/ui/pagination";
+import { Label } from "@/components/ui/label";
+import { Plus, Search, Edit, Trash } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,36 +19,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { IResponseModel } from "@/interfaces/ResponseModel";
+import { Combobox } from "@/components/ui/combobox";
+import { Textarea } from "@/components/ui/textarea";
+import { Pagination } from "@/components/ui/pagination";
+import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/hooks/use-toast";
-import { useGetParties, useAddParty, useDeleteParty } from "@/services/party/Party.Service";
-import { IParty } from "@/interfaces/party/Party";
+import {
+  useGetParties,
+  useAddParty,
+  useDeleteParty,
+} from "@/services/party/Party.Service";
 import { useGetStates } from "@/services/state/State.Service";
-import { IState } from "@/interfaces/state/State";
 import { useGetCities } from "@/services/city/City.Service";
+import { IResponseModel } from "@/interfaces/ResponseModel";
+import { IParty } from "@/interfaces/party/Party";
+import { IState } from "@/interfaces/state/State";
 import { ICity } from "@/interfaces/city/City";
-
 
 const Parties = () => {
   const [open, setOpen] = useState(false);
   const [editingParty, setEditingParty] = useState(false);
-  const [parties, setParties] = useState<IParty[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const { toast } = useToast();
-  const [states, setStates] = useState<IState[]>([]);
-  const [cities, setCities] = useState<ICity[]>([]);
-  const pageNumber = useRef(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState<string>("");
-
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [formData, setFormData] = useState<IParty>({
     partyID: "",
     partyName: "",
@@ -64,56 +53,30 @@ const Parties = () => {
     documentPath: "",
     isActive: true,
     cityName: "",
-    stateName: ""
+    stateName: "",
   });
 
-  const resetForm = () => {
-    setFormData({
-      partyID: "",
-      partyName: "",
-      mobileNo: "",
-      gstNumber: "",
-      stateId: 0,
-      cityId: 0,
-      panNumber: "",
-      aadharNumber: "",
-      address: "",
-      documentPath: "",
-      isActive: true,
-      cityName: "",
-      stateName: ""
-    });
+  const [states, setStates] = useState<IState[]>([]);
+  const [cities, setCities] = useState<ICity[]>([]);
+  const [parties, setParties] = useState<IParty[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const pageNumber = useRef(1);
+  const [pageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const { toast } = useToast();
+
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    setValidationErrors((prev) => ({ ...prev, [name]: "" })); // clear field error while typing
   };
 
-  useEffect(() => {
-    getPartiesList("");
-    getStateList("");
-    getCitiesList("", "");
-  }, []);
-
-  useEffect(() => {
-    if (search.trim() !== "") {
-      getPartiesList(search);
-    } else {
-      getPartiesList("");
-    }
-  }, [search]);
-
-  const getPartiesList = (filter: string) => {
-    setLoading(true);
-    getPartiesMutation.mutate({ searchFilter: filter, pageNumber: pageNumber.current, pageSize });
-  };
-
-  const getStateList = (stateId: string) => {
-    setLoading(true);
-    getStateMutation.mutate({ stateId: stateId });
-  };
-
+  // 🟩 Fetch States
   const getStateMutation = useGetStates({
     onSuccess: (res: IResponseModel) => {
-      if (res.statusCode === 200) {
-        setStates(res.data);
-      }
+      if (res.statusCode === 200) setStates(res.data);
       setLoading(false);
     },
     onError: (err: any) => {
@@ -124,18 +87,12 @@ const Parties = () => {
       });
       setLoading(false);
     },
-  })
+  });
 
-  const getCitiesList = (cityId: string, cityName: string) => {
-    setLoading(true);
-    getCitiesMutation.mutate({ cityId: cityId, cityName: cityName });
-  };
-
+  // 🟩 Fetch Cities
   const getCitiesMutation = useGetCities({
     onSuccess: (res: IResponseModel) => {
-      if (res.statusCode === 200) {
-        setCities(res.data);
-      }
+      if (res.statusCode === 200) setCities(res.data);
       setLoading(false);
     },
     onError: (err: any) => {
@@ -146,14 +103,14 @@ const Parties = () => {
       });
       setLoading(false);
     },
-  })
+  });
 
+  // 🟩 Fetch Parties
   const getPartiesMutation = useGetParties({
     onSuccess: (res: IResponseModel) => {
       if (res.statusCode === 200) {
-        console.log(res);
         setParties(res.data.party);
-        setTotalPages(Math.ceil(res.data.totalCount ?? 0 / pageSize));
+        setTotalPages(Math.ceil(res.data.totalCount / pageSize));
       }
       setLoading(false);
     },
@@ -170,17 +127,15 @@ const Parties = () => {
   // 🟩 Add/Edit Party
   const addPartyMutation = useAddParty({
     onSuccess: (res: IResponseModel) => {
-      if (res.statusCode === 200 || res.statusCode === 201) {
-        toast({
-          title: editingParty ? "Party Updated" : "Party Added",
-          description: res.statusMessage,
-          variant: "default",
-        });
-        setOpen(false);
-        setEditingParty(false);
-        resetForm();
-        getPartiesList("");
-      }
+      toast({
+        title: editingParty ? "Party Updated" : "Party Added",
+        description: res.statusMessage,
+        variant: "default",
+      });
+      setOpen(false);
+      setEditingParty(false);
+      resetForm();
+      getPartiesList("");
     },
     onError: (err: any) => {
       toast({
@@ -197,7 +152,7 @@ const Parties = () => {
       toast({
         title: "Party Deleted",
         description: "Party removed successfully",
-        variant: "default"
+        variant: "default",
       });
       getPartiesList("");
     },
@@ -210,28 +165,106 @@ const Parties = () => {
     },
   });
 
-  // 🟩 Form Handlers
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // 🟩 Initial Load
+  useEffect(() => {
+    getStateList("");
+    getPartiesList("");
+  }, []);
+
+  // 🟩 Search
+  useEffect(() => {
+    getPartiesList(search);
+  }, [search]);
+
+  const getStateList = (stateId: string) => {
+    setLoading(true);
+    getStateMutation.mutate({ stateId: stateId });
+  };
+
+  const getCitiesList = (cityId: string, cityName: string, stateId: string) => {
+    setLoading(true);
+    getCitiesMutation.mutate({ cityId: cityId, cityName: cityName, stateId: parseInt(stateId) });
+  };
+
+  const getPartiesList = (filter: string) => {
+    setLoading(true);
+    getPartiesMutation.mutate({
+      searchFilter: filter,
+      pageNumber: pageNumber.current,
+      pageSize: pageSize,
+    });
+  };
+
+  const resetForm = () => {
+    setFormData({
+      partyID: "",
+      partyName: "",
+      mobileNo: "",
+      gstNumber: "",
+      stateId: 0,
+      cityId: 0,
+      panNumber: "",
+      aadharNumber: "",
+      address: "",
+      documentPath: "",
+      isActive: true,
+      cityName: "",
+      stateName: "",
+    });
+  };
+
+
+  const validateAndSubmit = () => {
+    const errors: { [key: string]: string } = {};
+
+    if (!formData.partyName.trim()) errors.partyName = "Party name is required.";
+
+    if (!formData.mobileNo.trim()) errors.mobileNo = "Mobile number is required.";
+    else if (!/^[6-9]\d{9}$/.test(formData.mobileNo))
+      errors.mobileNo = "Enter a valid 10-digit mobile number.";
+
+    if (!formData.gstNumber.trim()) errors.gstNumber = "gstNumber number is required.";
+    else if (formData.gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstNumber))
+      errors.gstNumber = "Enter a valid GST number.";
+
+    if (!formData.panNumber.trim()) errors.panNumber = "PanNumber number is required.";
+    else if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber))
+      errors.panNumber = "Enter a valid PAN number.";
+
+    if (!formData.aadharNumber.trim()) errors.aadharNumber = "AadharNumber number is required.";
+    else if (formData.aadharNumber && !/^\d{12}$/.test(formData.aadharNumber))
+      errors.aadharNumber = "Enter a valid 12-digit Aadhaar number.";
+
+    if (!formData.stateId) errors.stateId = "Please select a state.";
+    if (!formData.cityId) errors.cityId = "Please select a city.";
+    if (!formData.address.trim()) errors.address = "Address is required.";
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) return; // stop submission if any error
+
+    handleSubmit();
+  };
+
+
+  const handleSubmit = () => {
+
     addPartyMutation.mutate(formData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handlePageChange = (newPage: number) => {
-    pageNumber.current = newPage;
-    getPartiesList(search);
-  };
-
-  const handleEditParty = (party: IParty) => {
+  const handleEditParty = (party: any) => {
     setEditingParty(true);
-    setFormData(party);
+    // setFormData(party);
+    setFormData({
+      ...party,
+      stateId: party.stateID,
+      stateName: party.stateName,
+      cityId: party.cityID,
+      cityName: party.cityName,
+    });
+    console.log(party);
+    console.log(formData);
+    getCitiesList("", "", party.stateID.toString());
     setOpen(true);
   };
 
@@ -239,24 +272,25 @@ const Parties = () => {
     deletePartyMutation.mutate({ partyId });
   };
 
-  const onSearch = (value: string) => {
-    setSearch(value);
+  const handlePageChange = (newPage: number) => {
+    pageNumber.current = newPage;
+    getPartiesList(search);
   };
 
   return (
     <div>
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Party Master</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your customers and suppliers
+            Manage your customers and parties
           </p>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Add Party
+              <Plus className="h-4 w-4" />
+              {editingParty ? "Edit Party" : "Add Party"}
             </Button>
           </SheetTrigger>
           <SheetContent className="sm:max-w-lg overflow-y-auto w-full">
@@ -264,248 +298,164 @@ const Parties = () => {
               <SheetTitle>{editingParty ? "Edit Party" : "Add New Party"}</SheetTitle>
             </SheetHeader>
 
-            <Form.Root onSubmit={handleSubmit} className="grid gap-4 py-4">
-              {/* Party Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Form.Field name="partyName">
-                  <Form.Label>Party Name</Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="partyName"
-                      placeholder="Enter name"
-                      value={formData.partyName}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Control>
-                  <Form.Message
-                    match="valueMissing"
-                    className="text-sm text-red-500"
-                  >
-                    Please enter party name
-                  </Form.Message>
-                </Form.Field>
-
-                <Form.Field name="mobileNumber">
-                  <Form.Label>Mobile Number</Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="mobileNumber"
-                      placeholder="Enter mobile"
-                      pattern="[0-9]{10}"
-                      maxLength={10}
-                      value={formData.mobileNo}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Control>
-                  <Form.Message
-                    match="valueMissing"
-                    className="text-sm text-red-500"
-                  >
-                    Please enter mobile number
-                  </Form.Message>
-                  <Form.Message
-                    match="patternMismatch"
-                    className="text-sm text-red-500"
-                  >
-                    Mobile number must be 10 digits
-                  </Form.Message>
-                </Form.Field>
+            <div className="grid gap-4 py-4">
+              {/* Party Name */}
+              <div className="space-y-2">
+                <Label>Party Name</Label>
+                <Input
+                  name="partyName"
+                  placeholder="Enter party name"
+                  value={formData.partyName}
+                  onChange={handleChange}
+                  className={validationErrors.partyName ? "border-red-500" : ""}
+                />
+                {validationErrors.partyName && <p className="text-red-500 text-sm">{validationErrors.partyName}</p>}
               </div>
 
-              {/* GST & State */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Form.Field name="gstNumber">
-                  <Form.Label>GST Number</Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="gstNumber"
-                      placeholder="Enter GST"
-                      required
-                      pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
-                      value={formData.gstNumber}
-                      onChange={handleChange}
-                    />
-                  </Form.Control>
-                  <Form.Message
-                    match="valueMissing"
-                    className="text-sm text-red-500"
-                  >
-                    Please enter GST number
-                  </Form.Message>
-                  <Form.Message
-                    match="patternMismatch"
-                    className="text-sm text-red-500"
-                  >
-                    Invalid GST number format
-                  </Form.Message>
-                </Form.Field>
-
-                <Form.Field name="state">
-                  <Form.Label>State</Form.Label>
-                  <Form.Control asChild>
-                    <Select
-                      value={formData.stateName}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, stateName: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {states.map((state) => (
-                          <SelectItem value={state.stateID.toString()} key={state.stateID}>{state.stateName}</SelectItem>
-                        ))}
-
-                      </SelectContent>
-                    </Select>
-                  </Form.Control>
-                  <Form.Message match="valueMissing" className="text-sm text-red-500">
-                    Please select a state
-                  </Form.Message>
-                </Form.Field>
+              {/* Mobile Number */}
+              <div className="space-y-2">
+                <Label>Mobile Number</Label>
+                <Input
+                  name="mobileNo"
+                  placeholder="Enter mobile number"
+                  value={formData.mobileNo}
+                  onChange={handleChange}
+                  className={validationErrors.mobileNo ? "border-red-500" : ""}
+                />
+                {validationErrors.mobileNo && <p className="text-red-500 text-sm">{validationErrors.mobileNo}</p>}
               </div>
 
-              {/* PAN & Aadhaar */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* PAN Number */}
-                <Form.Field name="panNumber" className="space-y-2">
-                  <Form.Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    PAN Number
-                  </Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="panNumber"
-                      placeholder="ABCDE1234F"
-                      required
-                      pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                    />
-                  </Form.Control>
-                  <Form.Message match="valueMissing" className="text-sm text-red-500">
-                    Please enter PAN number
-                  </Form.Message>
-                  <Form.Message match="patternMismatch" className="text-sm text-red-500">
-                    Invalid PAN format (e.g., ABCDE1234F)
-                  </Form.Message>
-                </Form.Field>
-
-
-                {/* Aadhaar Number */}
-                <Form.Field name="aadharNumber" className="space-y-2">
-                  <Form.Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Aadhaar Number
-                  </Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="aadharNumber"
-                      placeholder="123412341234"
-                      required
-                      pattern="[0-9]{12}"
-                      maxLength={12}
-                      value={formData.aadharNumber}
-                      onChange={handleChange}
-                    />
-                  </Form.Control>
-                  <Form.Message match="valueMissing" className="text-sm text-red-500">
-                    Please enter Aadhaar number
-                  </Form.Message>
-                  <Form.Message match="patternMismatch" className="text-sm text-red-500">
-                    Aadhaar number must be 12 digits
-                  </Form.Message>
-                </Form.Field>
+              {/* GST Number */}
+              <div className="space-y-2">
+                <Label>GST Number</Label>
+                <Input
+                  name="gstNumber"
+                  placeholder="Enter GST number"
+                  value={formData.gstNumber}
+                  onChange={handleChange}
+                  className={validationErrors.gstNumber ? "border-red-500" : ""}
+                />
+                {validationErrors.gstNumber && <p className="text-red-500 text-sm">{validationErrors.gstNumber}</p>}
               </div>
 
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Address */}
-                <Form.Field name="address">
-                  <Form.Label>Address</Form.Label>
-                  <Form.Control asChild>
-                    <Input
-                      name="address"
-                      placeholder="Enter address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Control>
-                  <Form.Message
-                    match="valueMissing"
-                    className="text-sm text-red-500"
-                  >
-                    Please enter address
-                  </Form.Message>
-                </Form.Field>
-
-                <Form.Field name="city">
-                  <Form.Label>City</Form.Label>
-                  <Form.Control asChild>
-                    <Select
-                      value={formData.cityName}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, cityName: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem value={city.cityID.toString()} key={city.cityID}>{city.cityName}</SelectItem>
-                        ))}
-
-                      </SelectContent>
-                    </Select>
-                  </Form.Control>
-                  <Form.Message match="valueMissing" className="text-sm text-red-500">
-                    Please select a state
-                  </Form.Message>
-                </Form.Field>
-
+              {/* PAN Number */}
+              <div className="space-y-2">
+                <Label>PAN Number</Label>
+                <Input
+                  name="panNumber"
+                  placeholder="ABCDE1234F"
+                  value={formData.panNumber}
+                  onChange={handleChange}
+                  className={validationErrors.panNumber ? "border-red-500" : ""}
+                />
+                {validationErrors.panNumber && <p className="text-red-500 text-sm">{validationErrors.panNumber}</p>}
               </div>
 
+              {/* Aadhaar Number */}
+              <div className="space-y-2">
+                <Label>Aadhaar Number</Label>
+                <Input
+                  name="aadharNumber"
+                  placeholder="123412341234"
+                  value={formData.aadharNumber}
+                  onChange={handleChange}
+                  className={validationErrors.aadharNumber ? "border-red-500" : ""}
+                />
+                {validationErrors.aadharNumber && <p className="text-red-500 text-sm">{validationErrors.aadharNumber}</p>}
+              </div>
 
-              {/* Document Upload */}
-              <Form.Field name="document">
-                <Form.Label>Upload Document</Form.Label>
-                <Form.Control asChild>
-                  <Input
-                    name="document"
-                    type="file"
-                    onChange={() => { }}
-                  />
-                </Form.Control>
-              </Form.Field>
+              {/* State */}
+              <div className="space-y-2">
+                <Label>State</Label>
+                <Combobox
+                  options={states.map((x: any) => ({
+                    value: x.stateID.toString(),
+                    label: x.stateName,
+                  }))}
+                  value={formData.stateId?.toString()}
+                  onValueChange={(val: string) => {
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      stateId: parseInt(val),
+                      stateName:
+                        states.find((s: any) => s.stateID.toString() === val)?.stateName ||
+                        "",
+                    }));
+
+                    setValidationErrors((prev) => ({ ...prev, stateId: "" }));
+
+                    // ✅ Pass stateId directly to getCitiesList
+                    getCitiesList("", "", val);
+                  }}
+                  placeholder="Select state"
+                  searchPlaceholder="Search state..."
+                />
+                {validationErrors.stateId && (
+                  <p className="text-red-500 text-sm">{validationErrors.stateId}</p>
+                )}
+              </div>
+
+              {/* City */}
+              <div className="space-y-2">
+                <Label>City</Label>
+                <Combobox
+                  options={cities.map((x: any) => ({ value: x.cityID.toString(), label: x.cityName }))}
+                  value={formData.cityId?.toString()}
+                  onValueChange={(val: string) => {
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      cityId: parseInt(val),
+                      cityName: cities.find((c: any) => c.cityID.toString() === val)?.cityName || "",
+                    }));
+                    setValidationErrors((prev) => ({ ...prev, cityId: "" }));
+                  }}
+                  placeholder="Select city"
+                  searchPlaceholder="Search city..."
+                />
+                {validationErrors.cityId && <p className="text-red-500 text-sm">{validationErrors.cityId}</p>}
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Textarea
+                  name="address"
+                  placeholder="Enter address"
+                  rows={3}
+                  value={formData.address}
+                  onChange={handleChange}
+                  className={validationErrors.address ? "border-red-500" : ""}
+                />
+                {validationErrors.address && <p className="text-red-500 text-sm">{validationErrors.address}</p>}
+              </div>
+
+              {/* Upload Document */}
+              <div className="space-y-2">
+                <Label>Upload Document</Label>
+                <Input name="document" type="file" onChange={() => { }} />
+              </div>
 
               {/* Buttons */}
               <div className="flex justify-end gap-2 mt-4">
                 <Button
-                  type="button"
                   variant="outline"
                   onClick={() => {
-                    resetForm();
                     setOpen(false);
-                    setEditingParty(false);
+                    resetForm();
+                    setValidationErrors({});
                   }}
                 >
                   Cancel
                 </Button>
-                <Form.Submit asChild>
-                  <Button type="submit">
-                    {editingParty ? "Update Party" : "Save Party"}
-                  </Button>
-                </Form.Submit>
+                <Button onClick={validateAndSubmit}>
+                  {editingParty ? "Update Party" : "Save Party"}
+                </Button>
               </div>
-            </Form.Root>
+            </div>
           </SheetContent>
         </Sheet>
       </div>
 
-      {/* Table Section */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -515,7 +465,7 @@ const Parties = () => {
                 placeholder="Search parties..."
                 className="pl-9"
                 value={search}
-                onChange={(e) => onSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
@@ -533,7 +483,7 @@ const Parties = () => {
                     <TableHead>GST</TableHead>
                     <TableHead>State</TableHead>
                     <TableHead>City</TableHead>
-                    {/* <TableHead>Created At</TableHead> */}
+                    <TableHead>Created Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -545,7 +495,7 @@ const Parties = () => {
                       <TableCell>{party.gstNumber}</TableCell>
                       <TableCell>{party.stateName}</TableCell>
                       <TableCell>{party.cityName}</TableCell>
-                      {/* <TableCell>{new Date(party.createdAt).toLocaleString()}</TableCell> */}
+                      <TableCell> {new Date(party.createdAt).toLocaleString()}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="outline"
@@ -558,7 +508,7 @@ const Parties = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteParty(party.partyID)}
+                          onClick={() => handleDeleteParty(party.partyID!)}
                         >
                           <Trash />
                         </Button>
