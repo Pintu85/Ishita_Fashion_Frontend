@@ -33,6 +33,7 @@ import { IItemDropDownList } from "@/interfaces/item/Item";
 import { IOutward, IOutwardBillRes } from "@/interfaces/outward/Outward";
 import { useAddOutward, useGetOutwards, useDeleteOutward } from "@/services/outward/Outward.Service";
 import { Pagination } from "@/components/ui/pagination";
+import { Loader } from "@/components/ui/loader";
 
 const Outward = () => {
   const [open, setOpen] = useState(false);
@@ -42,6 +43,7 @@ const Outward = () => {
   const [parties, setParties] = useState<IPartyDropdown[]>([]);
   const [items, setItems] = useState<IItemDropDownList[]>([]);
   const [outwardItems, setOutwardItems] = useState<IOutwardBillRes[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
   const pageNumber = useRef(1);
   const [pageSize, setPageSize] = useState(10);
@@ -85,6 +87,7 @@ const Outward = () => {
 
 
   const getOutWardList = (value: string) => {
+    setLoading(true);
     getInwardsMutation.mutate({ searchFilter: value, pageNumber: pageNumber.current, pageSize: pageSize });
   }
   const getInwardsMutation = useGetOutwards({
@@ -92,6 +95,7 @@ const Outward = () => {
       if (res.statusCode === 200) {
         setOutwardItems(res.data.outwards);
         setTotalPages(Math.ceil(res.data.totalCount / pageSize));
+        setLoading(false);
       }
     },
     onError: (err: any) => {
@@ -100,6 +104,7 @@ const Outward = () => {
         description: err,
         variant: "destructive",
       });
+      setLoading(false);
     },
   });
 
@@ -596,55 +601,62 @@ const Outward = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Party Name</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Bill Date</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead>Balance Due</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {outwardItems
-                  .map((entry) => (
-                    <TableRow key={entry.billID}>
-                      <TableCell className="font-medium">{entry.partyName}</TableCell>
-                      <TableCell>{entry.quantity}</TableCell>
-                      <TableCell>{new Date(entry.billDate).toLocaleString()}</TableCell>
-                      <TableCell>₹{entry.totalAmount}</TableCell>
-                      <TableCell>
-                        ₹{(entry.totalAmount).toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mr-1"
-                          onClick={() => handleEditOutward(entry)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteOutward(entry.billID)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+            {loading ? (
+              <Loader size={40} fullScreen={true} text="Loading outwards..." color="text-blue-500" />
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Party Name</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Bill Date</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Balance Due</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-            <Pagination
-              totalCount={totalPages}
-              currentPage={pageNumber.current}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-            />
+                  </TableHeader>
+                  <TableBody>
+                    {outwardItems
+                      .map((entry) => (
+                        <TableRow key={entry.billID}>
+                          <TableCell className="font-medium">{entry.partyName}</TableCell>
+                          <TableCell>{entry.quantity}</TableCell>
+                          <TableCell>{new Date(entry.billDate).toLocaleString()}</TableCell>
+                          <TableCell>₹{entry.totalAmount}</TableCell>
+                          <TableCell>
+                            ₹{(entry.totalAmount).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mr-1"
+                              onClick={() => handleEditOutward(entry)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteOutward(entry.billID)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+                <Pagination
+                  totalCount={totalPages}
+                  currentPage={pageNumber.current}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
+
           </div>
         </CardContent>
       </Card>
