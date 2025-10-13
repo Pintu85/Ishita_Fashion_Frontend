@@ -299,12 +299,16 @@ const Inward = () => {
       {open && (
         <Card className="mb-3">
           <CardHeader>
-            <CardTitle>{editingInward ? "update Inward Entry" : "Add Inward Entry"}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">
+              {editingInward ? "Update Inward Entry" : "Add Inward Entry"}
+            </CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="grid gap-4 sm:gap-6">
-              {/* Vendor and Date */}
+            <div className="space-y-6">
+              {/* Vendor & Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Vendor */}
                 <div className="space-y-2">
                   <Label htmlFor="vendor">Vendor</Label>
                   <Combobox
@@ -322,6 +326,7 @@ const Inward = () => {
                   )}
                 </div>
 
+                {/* Date */}
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
                   <Popover>
@@ -355,11 +360,11 @@ const Inward = () => {
                 </div>
               </div>
 
-              {/* Item Details Table */}
+              {/* Item Details */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <Label className="text-lg font-semibold">Item Details</Label>
-                  <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
+                  <Button onClick={addItem} variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                     <Plus className="h-4 w-4" />
                     Add Item
                   </Button>
@@ -367,15 +372,15 @@ const Inward = () => {
 
                 <div className="border border-border rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-[600px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[200px]">Design</TableHead>
-                          <TableHead className="min-w-[100px]">Quantity</TableHead>
-                          <TableHead className="min-w-[120px]">Cost/Piece</TableHead>
-                          <TableHead className="min-w-[120px]">Selling Price</TableHead>
-                          <TableHead className="min-w-[100px]">Total</TableHead>
-                          <TableHead className="w-[60px]"></TableHead>
+                          <TableHead>Design</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Cost/Piece</TableHead>
+                          <TableHead>Selling Price</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead></TableHead>
                         </TableRow>
                       </TableHeader>
 
@@ -386,7 +391,7 @@ const Inward = () => {
                               <Combobox
                                 options={items.map((x: any) => ({
                                   value: x.itemID.toString(),
-                                  label: x.designNo + "-" + x.itemName,
+                                  label: `${x.designNo} - ${x.itemName}`,
                                 }))}
                                 placeholder="Select design"
                                 searchPlaceholder="Search design..."
@@ -409,11 +414,6 @@ const Inward = () => {
                                   handleItemChange(index, "quantity", Number(e.target.value))
                                 }
                               />
-                              {validationErrors[`item_${index}_quantity`] && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {validationErrors[`item_${index}_quantity`]}
-                                </p>
-                              )}
                             </TableCell>
 
                             <TableCell>
@@ -425,24 +425,12 @@ const Inward = () => {
                                   handleItemChange(index, "price", Number(e.target.value))
                                 }
                               />
-                              {validationErrors[`item_${index}_price`] && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {validationErrors[`item_${index}_price`]}
-                                </p>
-                              )}
                             </TableCell>
 
-                            {/* Selling Price (disabled for now) */}
                             <TableCell>
-                              <Input
-                                type="number"
-                                placeholder="₹750"
-                                disabled
-                                className="bg-muted"
-                              />
+                              <Input type="number" placeholder="₹0" disabled className="bg-muted" />
                             </TableCell>
 
-                            {/* Total per item */}
                             <TableCell>
                               <Input
                                 type="number"
@@ -475,12 +463,9 @@ const Inward = () => {
                     </Table>
                   </div>
                 </div>
-                {validationErrors.details && (
-                  <p className="text-red-500 text-sm">{validationErrors.details}</p>
-                )}
               </div>
 
-              {/* Bill and Challan */}
+              {/* Bill & Challan */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="bill-no">Bill Number</Label>
@@ -490,27 +475,20 @@ const Inward = () => {
                     value={formData.billNo}
                     onChange={(e) => setFormData({ ...formData, billNo: e.target.value })}
                   />
-                  {validationErrors.billNo && (
-                    <p className="text-red-500 text-sm">{validationErrors.billNo}</p>
-                  )}
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="challan-no">Challan Number</Label>
                   <Input
                     id="challan-no"
                     placeholder="Enter challan number"
                     value={formData.challanNo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, challanNo: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, challanNo: e.target.value })}
                   />
-                  {validationErrors.challanNo && (
-                    <p className="text-red-500 text-sm">{validationErrors.challanNo}</p>
-                  )}
                 </div>
               </div>
 
-              {/* Payment and Total */}
+              {/* Note & Total */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="note">Note</Label>
@@ -527,14 +505,11 @@ const Inward = () => {
                   <Input
                     id="total"
                     type="number"
-                    placeholder="Auto-calculated"
                     disabled
                     className="bg-muted"
-                    value={
-                      formData.details
-                        .reduce((acc, x) => acc + x.quantity * x.price, 0)
-                        .toFixed(2)
-                    }
+                    value={formData.details
+                      .reduce((acc, x) => acc + x.quantity * x.price, 0)
+                      .toFixed(2)}
                   />
                 </div>
               </div>

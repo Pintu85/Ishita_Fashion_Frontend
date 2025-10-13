@@ -42,3 +42,12 @@ export const useDeleteParty = (options?: UseMutationOptions<any, any, any, any>)
         ...options
     })
 }
+
+export const useGetPartiesWithoutFilter = (options?: UseMutationOptions<any, any, any, any>) => {
+    return useMutation({
+        mutationFn: async () => {
+            return await get("party/get-all");
+        },
+        ...options
+    })
+}

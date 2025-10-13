@@ -14,3 +14,8 @@ export interface IParty {
   stateName:string;
   createdAt? : string;
 }
+
+export interface IPartyDropdown {
+    partyID: string;
+    partyName: string;
+}
