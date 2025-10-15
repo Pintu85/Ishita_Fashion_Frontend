@@ -71,10 +71,16 @@ export default function LoginPage() {
                 setLoading(false);
             }
         },
-        onError: (error: any) => {
+        onError: (err: any) => {
+            const errorMsg =
+                err?.response?.data?.statusMessage ||
+                err?.response?.data?.message ||
+                err?.message ||
+                "Something went wrong";
+
             toast({
-                title: "Error occured",
-                description: error,
+                title: "Error occurred",
+                description: errorMsg,
                 variant: "destructive",
             });
             setLoading(false);

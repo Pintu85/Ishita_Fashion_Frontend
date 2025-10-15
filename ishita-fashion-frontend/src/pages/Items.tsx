@@ -132,7 +132,17 @@ const Items = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
 
+      toast({
+        title: "Error occurred",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   })
 
@@ -145,9 +155,15 @@ const Items = () => {
       }
     },
     onError: (err: any) => {
+        const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
       setLoading(false);
@@ -170,7 +186,17 @@ const Items = () => {
       }
     },
     onError: (err: any) => {
+         const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
 
+      toast({
+        title: "Error occurred",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   })
 
@@ -205,9 +231,15 @@ const Items = () => {
       });
     },
     onError: (err: any) => {
+         const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     }

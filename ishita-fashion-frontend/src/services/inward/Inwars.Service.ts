@@ -13,6 +13,9 @@ export const useAddInward = (options?: UseMutationOptions< any, any, IInward, an
             challanNo: data.challanNo,
             note: data.note,
             inwardDate: data.inwardDate,
+            amountPaid: data.amountPaid,
+            paidDate: data.paidDate,
+            remarks: data.remarks,
             details: data.details
         }
         return await post("inward/add",payload)

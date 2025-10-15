@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
-import { CalendarIcon, Search, Plus, Trash2, Edit, Trash } from "lucide-react";
+import { CalendarIcon, Search, Plus, Trash2, Edit, Eye, Trash } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { IVendorDropdown } from "@/interfaces/vendor/Vendor";
@@ -19,6 +19,7 @@ import { IItemDropDownList } from "@/interfaces/item/Item";
 import { useAddInward, useGetInwards, useDeleteInward } from "@/services/inward/Inwars.Service"
 import { IInward, InwardRes, InwardDetail } from "@/interfaces/Inward/Inward";
 import { Pagination } from "@/components/ui/pagination";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const Inward = () => {
   const [date, setDate] = useState<Date>();
@@ -32,6 +33,8 @@ const Inward = () => {
   const pageNumber = useRef(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(10);
+  const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
   const [formData, setFormData] = useState<IInward>({
     inwardID: "",
     vendorID: "",
@@ -39,6 +42,9 @@ const Inward = () => {
     challanNo: "",
     note: "",
     inwardDate: "",
+    amountPaid: 0,
+    paidDate: "",
+    remarks: "",
     details: [
       { itemID: "", quantity: 0, price: 0 }
     ]
@@ -65,6 +71,11 @@ const Inward = () => {
     resetForm();
   };
 
+  const handleViewItems = (entry) => {
+    setSelectedBill(entry);
+    setIsItemsDialogOpen(true);
+  };
+
   const handleSubmit = () => {
     if (!validateForm()) return;
     useAddInwardMutation.mutate({
@@ -74,13 +85,16 @@ const Inward = () => {
       challanNo: formData.challanNo,
       note: formData.note,
       inwardDate: formData.inwardDate,
+      amountPaid: formData.amountPaid,
+      paidDate: formData.paidDate,
+      remarks: formData.remarks,
       details: formData.details
     })
     setOpen(false);
   }
 
   const resetForm = () => {
-    setFormData({ inwardID: "", vendorID: "", billNo: "", challanNo: "", note: "", inwardDate: "", details: [{ itemID: "", quantity: 0, price: 0 }] })
+    setFormData({ inwardID: "", vendorID: "", billNo: "", challanNo: "", note: "", inwardDate: "", amountPaid: 0, paidDate: "", remarks: "", details: [{ itemID: "", quantity: 0, price: 0 }] })
   }
 
   const handleItemChange = <K extends keyof InwardDetail>(
@@ -122,9 +136,15 @@ const Inward = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     },
@@ -141,9 +161,15 @@ const Inward = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     },
@@ -160,9 +186,15 @@ const Inward = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     },
@@ -216,9 +248,15 @@ const Inward = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong while deleting inward.";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -238,9 +276,15 @@ const Inward = () => {
       }
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong while deleting inward.";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -251,6 +295,12 @@ const Inward = () => {
     setEditingInward(true);
     const parsedDate = data.inwardDate ? new Date(data.inwardDate) : undefined;
     setDate(parsedDate);
+    console.log({ data });
+    // Safely get first payment (if exists)
+    const firstPayment = data.vendorPayments && data.vendorPayments.length > 0
+      ? data.vendorPayments[0]
+      : null;
+
     setFormData({
       inwardID: data.inwardID,
       vendorID: data.vendorID,
@@ -258,11 +308,14 @@ const Inward = () => {
       challanNo: data.challanNo,
       note: data.note,
       inwardDate: data.inwardDate,
-      details: data.items.map((item) => ({
+      amountPaid: firstPayment ? firstPayment.amountPaid : 0,
+      paidDate: firstPayment ? firstPayment.paidDate : "",
+      remarks: firstPayment ? firstPayment.remarks : "",
+      details: data.items?.map((item: any) => ({
         itemID: item.itemID,
         quantity: item.quantity,
         price: item.price,
-      })),
+      })) || [],
     });
   }
 
@@ -276,6 +329,10 @@ const Inward = () => {
     let size = pageSize;
     setPageSize(size);
     getInwardList("");
+  };
+
+  const calculateTotal = () => {
+    return formData.details.reduce((acc, item) => acc + (item.quantity * item.price), 0);
   };
 
   return (
@@ -357,6 +414,54 @@ const Inward = () => {
                   {validationErrors.inwardDate && (
                     <p className="text-red-500 text-sm">{validationErrors.inwardDate}</p>
                   )}
+                </div>
+              </div>
+              {/* Bill & Challan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bill-no">Bill Number</Label>
+                  <Input
+                    id="bill-no"
+                    placeholder="Enter bill number"
+                    value={formData.billNo}
+                    onChange={(e) => setFormData({ ...formData, billNo: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="challan-no">Challan Number</Label>
+                  <Input
+                    id="challan-no"
+                    placeholder="Enter challan number"
+                    value={formData.challanNo}
+                    onChange={(e) => setFormData({ ...formData, challanNo: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Note & Total */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note</Label>
+                  <Input
+                    id="note"
+                    placeholder="Add note (optional)"
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="total">Total Amount</Label>
+                  <Input
+                    id="total"
+                    type="number"
+                    disabled
+                    className="bg-muted"
+                    value={formData.details
+                      .reduce((acc, x) => acc + x.quantity * x.price, 0)
+                      .toFixed(2)}
+                  />
                 </div>
               </div>
 
@@ -465,54 +570,110 @@ const Inward = () => {
                 </div>
               </div>
 
-              {/* Bill & Challan */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bill-no">Bill Number</Label>
-                  <Input
-                    id="bill-no"
-                    placeholder="Enter bill number"
-                    value={formData.billNo}
-                    onChange={(e) => setFormData({ ...formData, billNo: e.target.value })}
-                  />
-                </div>
+              {/* Payment Details Section */}
+              <Card className="bg-muted/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">Payment Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Payment Summary Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Total Amount</Label>
+                      <div className="text-2xl font-bold">
+                        ₹{calculateTotal().toFixed(2)}
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="challan-no">Challan Number</Label>
-                  <Input
-                    id="challan-no"
-                    placeholder="Enter challan number"
-                    value={formData.challanNo}
-                    onChange={(e) => setFormData({ ...formData, challanNo: e.target.value })}
-                  />
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Payment Made</Label>
+                      <div className="text-2xl font-bold">
+                        ₹{(formData.amountPaid || 0).toFixed(2)}
+                      </div>
+                    </div>
 
-              {/* Note & Total */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="note">Note</Label>
-                  <Input
-                    id="note"
-                    placeholder="Add note (optional)"
-                    value={formData.note}
-                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  />
-                </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Due Amount</Label>
+                      <div className="text-2xl font-bold text-green-600">
+                        ₹{(calculateTotal() - (formData.amountPaid || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="total">Total Amount</Label>
-                  <Input
-                    id="total"
-                    type="number"
-                    disabled
-                    className="bg-muted"
-                    value={formData.details
-                      .reduce((acc, x) => acc + x.quantity * x.price, 0)
-                      .toFixed(2)}
-                  />
-                </div>
-              </div>
+                  {/* Payment Input Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="payment-amount">Amount Paid</Label>
+                      <Input
+                        id="payment-amount"
+                        type="number"
+                        placeholder="Enter amount received"
+                        value={formData.amountPaid || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            amountPaid: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="payment-date">Received Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="payment-date"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.paidDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                            {formData.paidDate
+                              ? format(new Date(formData.paidDate), "dd MMM yyyy")
+                              : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.paidDate
+                                ? new Date(formData.paidDate)
+                                : undefined
+                            }
+                            onSelect={(d) => {
+                              setFormData({
+                                ...formData,
+                                paidDate: d ? d.toISOString().split("T")[0] : "",
+                              });
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {/* Notes/Remarks */}
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-remarks">Notes</Label>
+                    <Input
+                      id="payment-remarks"
+                      type="text"
+                      placeholder="Add payment notes or remarks"
+                      value={formData.remarks || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          remarks: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
@@ -563,6 +724,14 @@ const Inward = () => {
                     <TableCell>{new Date(entry.inwardDate).toLocaleString()}</TableCell>
                     <TableCell>₹{entry.totalAmount}</TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mr-1"
+                        onClick={() => handleViewItems(entry)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" size="sm" className="mr-1" onClick={() => handleEditInward(entry)}>
                         <Edit />
                       </Button>
@@ -580,10 +749,165 @@ const Inward = () => {
               pageSize={pageSize}
               onPageChange={handlePageChange}
             />
+            <Dialog open={isItemsDialogOpen} onOpenChange={setIsItemsDialogOpen}>
+              <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-base sm:text-lg font-semibold">
+                    Bill Items - {selectedBill?.billNo}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm text-gray-600">
+                    Vendor: {selectedBill?.vendorName} | Date:{' '}
+                    {selectedBill?.inwardDate
+                      ? new Date(selectedBill.inwardDate).toLocaleDateString()
+                      : ''}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-4 space-y-6">
+                  {/* Bill Items Section */}
+                  <details open className="group border rounded-xl p-3 sm:p-4 bg-gray-50">
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base mb-2">
+                      Bill Items
+                    </summary>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item Name</TableHead>
+                            <TableHead>Design No</TableHead>
+                            <TableHead className="text-right">Quantity</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedBill?.items?.map((item) => (
+                            <TableRow key={item.billDetailID}>
+                              <TableCell className="font-medium">{item.itemName}</TableCell>
+                              <TableCell>{item.designNo}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-right">
+                                ₹{item.price.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ₹{item.amount.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden space-y-3">
+                      {selectedBill?.items?.map((item) => (
+                        <div
+                          key={item.billDetailID}
+                          className="border rounded-lg p-3 bg-white shadow-sm"
+                        >
+                          <div className="flex justify-between">
+                            <span className="font-semibold">{item.itemName}</span>
+                            <span>₹{item.amount.toFixed(2)}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            <div>Design No: {item.designNo}</div>
+                            <div>Qty: {item.quantity}</div>
+                            <div>Price: ₹{item.price.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+
+                  {/* Payment History Section */}
+                  {selectedBill?.billPayments?.length > 0 && (
+                    <details className="group border rounded-xl p-3 sm:p-4 bg-gray-50">
+                      <summary className="cursor-pointer font-semibold text-sm sm:text-base mb-2">
+                        Payment History
+                      </summary>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Amount Received</TableHead>
+                              <TableHead>Remarks</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedBill.billPayments.map((payment) => (
+                              <TableRow key={payment.billPaymentID}>
+                                <TableCell>
+                                  {new Date(payment.receivedDate).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  ₹{payment.amountReceived.toFixed(2)}
+                                </TableCell>
+                                <TableCell>{payment.remarks}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Mobile Card View */}
+                      <div className="sm:hidden space-y-3">
+                        {selectedBill.billPayments.map((payment) => (
+                          <div
+                            key={payment.billPaymentID}
+                            className="border rounded-lg p-3 bg-white shadow-sm"
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-semibold">
+                                {new Date(payment.receivedDate).toLocaleDateString()}
+                              </span>
+                              <span>₹{payment.amountReceived.toFixed(2)}</span>
+                            </div>
+                            {payment.remarks && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                Remarks: {payment.remarks}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Summary Section */}
+                  <div className="pt-4 border-t text-sm sm:text-base space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Quantity:</span>
+                      <span>{selectedBill?.quantity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Amount:</span>
+                      <span>₹{selectedBill?.totalAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Received:</span>
+                      <span>₹{selectedBill?.totalReceived.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold mt-3">
+                      <span>Balance Due:</span>
+                      <span className="text-red-600">
+                        ₹{selectedBill?.dueAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
     </div>
+
+
   );
 };
 

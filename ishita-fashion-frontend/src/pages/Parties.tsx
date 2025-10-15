@@ -96,9 +96,15 @@ const Parties = () => {
       setLoading(false);
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error fetching cities",
-        description: err.message || "Something went wrong",
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
       setLoading(false);
@@ -115,9 +121,15 @@ const Parties = () => {
       setLoading(false);
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error fetching parties",
-        description: err.message || "Something went wrong",
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
       setLoading(false);
@@ -138,9 +150,15 @@ const Parties = () => {
       getPartiesList("");
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error saving party",
-        description: err.message || "Something went wrong",
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     },
@@ -157,9 +175,15 @@ const Parties = () => {
       getPartiesList("");
     },
     onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error deleting party",
-        description: err.message || "Something went wrong",
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     },

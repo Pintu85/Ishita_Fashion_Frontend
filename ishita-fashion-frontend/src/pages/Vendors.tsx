@@ -82,9 +82,15 @@ const Vendors = () => {
       }
     },
     onError: (err: any) => {
+        const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
       setLoading(false);
@@ -111,9 +117,15 @@ const Vendors = () => {
       }
     },
     onError: (err: any) => {
+        const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -129,9 +141,15 @@ const Vendors = () => {
       });
     },
     onError: (err: any) => {
+         const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
       toast({
-        title: "Error occured",
-        description: err,
+        title: "Error occurred",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -164,7 +182,6 @@ const Vendors = () => {
   }, [search]);
 
   const onSearch = (value: string) => {
-    console.log(value);
     pageNumber.current = 1;
     setSearch(value);
   }

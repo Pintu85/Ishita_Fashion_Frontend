@@ -25,7 +25,6 @@ export const useAddOutward = (options?: UseMutationOptions<any, any, IOutward, a
     }
 
       };
-          console.log(payload);
       return await post("bill/add", payload);
     },
     ...options
