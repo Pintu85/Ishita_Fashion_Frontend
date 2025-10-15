@@ -12,7 +12,8 @@ export interface IOutward {
   totalAmount: number;
   billDate: string;  
   isPaid: boolean;
-  details: OutwardItemRequest[] ;
+  details: OutwardItemRequest[];
+  billPaymentRequest: IBillPaymentRequest;
 }
 
 export interface IOutwardItem {
@@ -25,6 +26,15 @@ export interface IOutwardItem {
   amount: number;
 }
 
+export interface IBillPaymentRequest {
+  billPaymentID: string;
+  partyID: string;
+  billID?: string;
+  amountReceived: number;
+  receivedDate: string;
+  remarks: string;
+}
+
 export interface IOutwardBillRes {
   billID: string;
   partyID: string;
@@ -34,6 +44,15 @@ export interface IOutwardBillRes {
   isPaid: boolean;
   gstTypeID: number;
   totalAmount: number;
-  quantity: number;
+  totalQuantity: number;
+  dueAmount:number;
   items: IOutwardItem[];
+  billPayments: IBillPaymentRes[];
+}
+
+export interface IBillPaymentRes {
+  billPaymentID: string;
+  amountReceived: number;
+  receivedDate: string;
+  remarks: string;
 }

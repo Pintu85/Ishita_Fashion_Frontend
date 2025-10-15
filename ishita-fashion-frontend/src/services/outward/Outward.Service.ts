@@ -14,8 +14,18 @@ export const useAddOutward = (options?: UseMutationOptions<any, any, IOutward, a
         totalAmount: data.totalAmount,
         billDate: data.billDate,
         isPaid: data.isPaid,
-        details: data.details
+        details: data.details,
+        billPaymentRequest: {
+      billPaymentID: data.billPaymentRequest.billPaymentID && data.billPaymentRequest.billPaymentID !== "" ? data.billPaymentRequest.billPaymentID : null,
+      partyID: data.partyID,
+      billID: data.billID && data.billID !== "" ? data.billID : null,
+      amountReceived:data.billPaymentRequest.amountReceived,
+      receivedDate: data.billPaymentRequest.receivedDate,
+      remarks: data.billPaymentRequest.remarks,
+    }
+
       };
+          console.log(payload);
       return await post("bill/add", payload);
     },
     ...options

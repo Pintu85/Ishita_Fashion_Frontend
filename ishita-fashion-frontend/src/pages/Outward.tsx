@@ -3,28 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search, Edit, Trash, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, Search, Edit, Trash, Eye, Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useGetItemsDropDownList } from "@/services/item/Item.Service";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { useGetPartiesWithoutFilter } from "@/services/party/Party.Service";
 import { IResponseModel } from "@/interfaces/ResponseModel";
 import { IPartyDropdown } from "@/interfaces/party/Party";
@@ -34,6 +21,8 @@ import { IOutward, IOutwardBillRes } from "@/interfaces/outward/Outward";
 import { useAddOutward, useGetOutwards, useDeleteOutward } from "@/services/outward/Outward.Service";
 import { Pagination } from "@/components/ui/pagination";
 import { Loader } from "@/components/ui/loader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
 
 const Outward = () => {
   const [open, setOpen] = useState(false);
@@ -48,6 +37,8 @@ const Outward = () => {
   const pageNumber = useRef(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(10);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<IOutward>({
     billID: "",
     partyID: "",
@@ -62,8 +53,21 @@ const Outward = () => {
         quantity: 0,
         price: 0
       }
-    ]
+    ],
+    billPaymentRequest: {
+      billPaymentID: "",
+      partyID: "",
+      billID: "",
+      amountReceived: 0,
+      receivedDate: "",
+      remarks: "",
+    }
   });
+
+  const handleViewItems = (entry) => {
+    setSelectedBill(entry);
+    setIsItemsDialogOpen(true);
+  };
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -189,7 +193,15 @@ const Outward = () => {
           quantity: 0,
           price: 0
         }
-      ]
+      ],
+      billPaymentRequest: {
+        billPaymentID: "",
+        partyID: "",
+        billID: "",
+        amountReceived: 0,
+        receivedDate: "",
+        remarks: "",
+      }
     });
     setDate(undefined);
     setValidationErrors({});
@@ -262,11 +274,6 @@ const Outward = () => {
       billDate: formData.billDate || new Date().toISOString(),
       isPaid: formData.totalAmount > 0 && formData.totalAmount <= calculateTotal(),
     };
-
-    console.log("📦 Submitting Final Payload:", finalData);
-
-    // Example: Call your API here
-    // await addOutwardMutation.mutateAsync(finalData);
     useAddOutwardMutation.mutate({
       billID: finalData.billID,
       partyID: finalData.partyID,
@@ -275,44 +282,60 @@ const Outward = () => {
       totalAmount: finalData.totalAmount,
       billDate: finalData.billDate,
       isPaid: true,
-      details: formData.details
+      details: formData.details,
+      billPaymentRequest: formData.billPaymentRequest
     })
     setOpen(false);
     resetForm();
   };
 
-
   const handleEditOutward = (data: any) => {
     setOpen(true);
     setEditingOutward(true);
-    console.log(data);
-    const parsedDate = data.billDate ? new Date(data.billDate) : undefined;
-    // setDate(parsedDate);
-    setFormData({
-      billID: data.billID || "",                    // match backend
-      partyID: data.partyID || "",                  // fallback empty
-      billNo: data.billNo || "",                    // include if editable
-      billDate: parsedDate ? parsedDate.toISOString() : "",
-      gstTypeID: data.gstTypeID || 0,               // proper field name
-      totalAmount: data.totalAmount || 0,           // prefilled for UI
-      isPaid: data.isPaid ?? false,                 // new boolean field
-      details: data.items && data.items.length > 0
-        ? data.items.map((item: any) => ({
-          itemID: item.itemID || "",
-          quantity: item.quantity || 0,
-          price: item.price || 0
-        }))
-        : [
-          {
-            itemID: "",
-            quantity: 0,
-            price: 0
-          }
-        ]
-    });
 
-    // Optional: if you maintain a `date` state for the calendar picker
-    // setDate(parsedDate);
+    // Parse main and payment dates
+    const parsedDate = data.billDate ? new Date(data.billDate) : undefined;
+    const firstPayment = data.billPayments && data.billPayments.length > 0 ? data.billPayments[0] : null;
+    const parsedReceivedDate = firstPayment?.receivedDate ? new Date(firstPayment.receivedDate) : undefined;
+
+    // Prepare form data
+    const updatedFormData = {
+      billID: data.billID || "",
+      partyID: data.partyID || "",
+      billNo: data.billNo || "",
+      billDate: parsedDate ? parsedDate.toISOString().split("T")[0] : "", // yyyy-MM-dd
+      gstTypeID: data.gstTypeID || 0,
+      totalAmount: data.totalAmount || 0,
+      isPaid: data.isPaid ?? false,
+
+      details:
+        data.items && data.items.length > 0
+          ? data.items.map((item: any) => ({
+            itemID: item.itemID || "",
+            quantity: item.quantity || 0,
+            price: item.price || 0,
+          }))
+          : [
+            {
+              itemID: "",
+              quantity: 0,
+              price: 0,
+            },
+          ],
+
+      billPaymentRequest: {
+        billPaymentID: firstPayment?.billPaymentID || "",
+        partyID: data.partyID || "",
+        billID: data.billID || "",
+        amountReceived: firstPayment?.amountReceived || 0,
+        receivedDate: parsedReceivedDate
+          ? parsedReceivedDate.toISOString().split("T")[0]
+          : "",
+        remarks: firstPayment?.remarks || "",
+      },
+    };
+
+    setFormData(updatedFormData);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -432,6 +455,38 @@ const Outward = () => {
                 </div>
               </div>
 
+              {/* GST and Payment */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gst-type">GST Type</Label>
+                  <Select
+                    value={formData.gstTypeID.toString()}
+                    onValueChange={(val) => setFormData({ ...formData, gstTypeID: Number(val) })}
+                  >
+                    <SelectTrigger id="gst-type">
+                      <SelectValue placeholder="Select GST type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Select GST Type</SelectItem>
+                      <SelectItem value="1">Gujarat (SGST + CGST)</SelectItem>
+                      <SelectItem value="2">Other State (IGST)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Total */}
+                <div className="space-y-2">
+                  <Label htmlFor="total">Grand Total</Label>
+                  <Input
+                    id="total"
+                    type="number"
+                    placeholder="Auto-calculated"
+                    disabled
+                    className="bg-muted text-lg font-semibold"
+                    value={calculateTotal().toFixed(2)}
+                  />
+                </div>
+              </div>
+
               {/* Item Details Table */}
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -541,39 +596,119 @@ const Outward = () => {
                   </div>
                 </div>
               </div>
+              {/* Payment Details Section */}
+              <Card className="bg-muted/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">Payment Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Payment Summary Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Total Amount</Label>
+                      <div className="text-2xl font-bold">
+                        ₹{calculateTotal().toFixed(2)}
+                      </div>
+                    </div>
 
-              {/* GST and Payment */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gst-type">GST Type</Label>
-                  <Select
-                    value={formData.gstTypeID.toString()}
-                    onValueChange={(val) => setFormData({ ...formData, gstTypeID: Number(val) })}
-                  >
-                    <SelectTrigger id="gst-type">
-                      <SelectValue placeholder="Select GST type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Select GST Type</SelectItem>
-                      <SelectItem value="1">Gujarat (SGST + CGST)</SelectItem>
-                      <SelectItem value="2">Other State (IGST)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Payment Made</Label>
+                      <div className="text-2xl font-bold">
+                        ₹{(formData.billPaymentRequest?.amountReceived || 0).toFixed(2)}
+                      </div>
+                    </div>
 
-              {/* Total */}
-              <div className="space-y-2">
-                <Label htmlFor="total">Grand Total</Label>
-                <Input
-                  id="total"
-                  type="number"
-                  placeholder="Auto-calculated"
-                  disabled
-                  className="bg-muted text-lg font-semibold"
-                  value={calculateTotal().toFixed(2)}
-                />
-              </div>
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Due Amount</Label>
+                      <div className="text-2xl font-bold text-green-600">
+                        ₹{(calculateTotal() - (formData.billPaymentRequest?.amountReceived || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Input Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="payment-amount">Amount Received</Label>
+                      <Input
+                        id="payment-amount"
+                        type="number"
+                        placeholder="Enter amount received"
+                        value={formData.billPaymentRequest?.amountReceived || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            billPaymentRequest: {
+                              ...formData.billPaymentRequest,
+                              amountReceived: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="payment-date">Received Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="payment-date"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.billPaymentRequest?.receivedDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                            {formData.billPaymentRequest?.receivedDate
+                              ? format(new Date(formData.billPaymentRequest.receivedDate), "dd MMM yyyy")
+                              : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.billPaymentRequest?.receivedDate
+                                ? new Date(formData.billPaymentRequest.receivedDate)
+                                : undefined
+                            }
+                            onSelect={(d) => {
+                              setFormData({
+                                ...formData,
+                                billPaymentRequest: {
+                                  ...formData.billPaymentRequest,
+                                  receivedDate: d ? d.toISOString().split("T")[0] : "",
+                                },
+                              });
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {/* Notes/Remarks */}
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-remarks">Notes</Label>
+                    <Input
+                      id="payment-remarks"
+                      type="text"
+                      placeholder="Add payment notes or remarks"
+                      value={formData.billPaymentRequest?.remarks || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          billPaymentRequest: {
+                            ...formData.billPaymentRequest,
+                            remarks: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
@@ -621,13 +756,21 @@ const Outward = () => {
                       .map((entry) => (
                         <TableRow key={entry.billID}>
                           <TableCell className="font-medium">{entry.partyName}</TableCell>
-                          <TableCell>{entry.quantity}</TableCell>
+                          <TableCell>{entry.totalQuantity}</TableCell>
                           <TableCell>{new Date(entry.billDate).toLocaleString()}</TableCell>
                           <TableCell>₹{entry.totalAmount}</TableCell>
                           <TableCell>
-                            ₹{(entry.totalAmount).toFixed(2)}
+                            ₹{(entry.dueAmount).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mr-1"
+                              onClick={() => handleViewItems(entry)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -657,6 +800,159 @@ const Outward = () => {
               </>
             )}
 
+            <Dialog open={isItemsDialogOpen} onOpenChange={setIsItemsDialogOpen}>
+              <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-base sm:text-lg font-semibold">
+                    Bill Items - {selectedBill?.billNo}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm text-gray-600">
+                    Party: {selectedBill?.partyName} | Date:{' '}
+                    {selectedBill?.billDate
+                      ? new Date(selectedBill.billDate).toLocaleDateString()
+                      : ''}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-4 space-y-6">
+                  {/* Bill Items Section */}
+                  <details open className="group border rounded-xl p-3 sm:p-4 bg-gray-50">
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base mb-2">
+                      Bill Items
+                    </summary>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item Name</TableHead>
+                            <TableHead>Design No</TableHead>
+                            <TableHead className="text-right">Quantity</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedBill?.items?.map((item) => (
+                            <TableRow key={item.billDetailID}>
+                              <TableCell className="font-medium">{item.itemName}</TableCell>
+                              <TableCell>{item.designNo}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-right">
+                                ₹{item.price.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ₹{item.amount.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden space-y-3">
+                      {selectedBill?.items?.map((item) => (
+                        <div
+                          key={item.billDetailID}
+                          className="border rounded-lg p-3 bg-white shadow-sm"
+                        >
+                          <div className="flex justify-between">
+                            <span className="font-semibold">{item.itemName}</span>
+                            <span>₹{item.amount.toFixed(2)}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            <div>Design No: {item.designNo}</div>
+                            <div>Qty: {item.quantity}</div>
+                            <div>Price: ₹{item.price.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+
+                  {/* Payment History Section */}
+                  {selectedBill?.billPayments?.length > 0 && (
+                    <details className="group border rounded-xl p-3 sm:p-4 bg-gray-50">
+                      <summary className="cursor-pointer font-semibold text-sm sm:text-base mb-2">
+                        Payment History
+                      </summary>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Amount Received</TableHead>
+                              <TableHead>Remarks</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedBill.billPayments.map((payment) => (
+                              <TableRow key={payment.billPaymentID}>
+                                <TableCell>
+                                  {new Date(payment.receivedDate).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  ₹{payment.amountReceived.toFixed(2)}
+                                </TableCell>
+                                <TableCell>{payment.remarks}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Mobile Card View */}
+                      <div className="sm:hidden space-y-3">
+                        {selectedBill.billPayments.map((payment) => (
+                          <div
+                            key={payment.billPaymentID}
+                            className="border rounded-lg p-3 bg-white shadow-sm"
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-semibold">
+                                {new Date(payment.receivedDate).toLocaleDateString()}
+                              </span>
+                              <span>₹{payment.amountReceived.toFixed(2)}</span>
+                            </div>
+                            {payment.remarks && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                Remarks: {payment.remarks}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Summary Section */}
+                  <div className="pt-4 border-t text-sm sm:text-base space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Quantity:</span>
+                      <span>{selectedBill?.totalQuantity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Amount:</span>
+                      <span>₹{selectedBill?.totalAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total Received:</span>
+                      <span>₹{selectedBill?.totalReceived.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold mt-3">
+                      <span>Balance Due:</span>
+                      <span className="text-red-600">
+                        ₹{selectedBill?.dueAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
