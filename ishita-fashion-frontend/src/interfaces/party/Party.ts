@@ -18,4 +18,5 @@ export interface IParty {
 export interface IPartyDropdown {
     partyID: string;
     partyName: string;
+    mobileNo: string;
 }

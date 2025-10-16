@@ -46,7 +46,7 @@ export const useDeleteParty = (options?: UseMutationOptions<any, any, any, any>)
 export const useGetPartiesWithoutFilter = (options?: UseMutationOptions<any, any, any, any>) => {
     return useMutation({
         mutationFn: async () => {
-            return await get("party/get-all");
+            return await get("party/get-parties-dropdown-list");
         },
         ...options
     })

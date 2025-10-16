@@ -15,11 +15,14 @@ import { useGetVendorsWithoutFilter } from "@/services/vendor/Vendor.Service";
 import { useGetItemsDropDownList } from "@/services/item/Item.Service";
 import { useToast } from "@/hooks/use-toast";
 import { IResponseModel } from "@/interfaces/ResponseModel";
-import { IItemDropDownList } from "@/interfaces/item/Item";
+import { IItem, IItemDropDownList } from "@/interfaces/item/Item";
 import { useAddInward, useGetInwards, useDeleteInward } from "@/services/inward/Inwars.Service"
 import { IInward, InwardRes, InwardDetail } from "@/interfaces/Inward/Inward";
 import { Pagination } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import AddDesignDialog from "@/pages/common/AddDesignDialog";
+import { useAddItem } from "@/services/item/Item.Service";
+import { Loader } from "@/components/ui/loader";
 
 const Inward = () => {
   const [date, setDate] = useState<Date>();
@@ -35,6 +38,20 @@ const Inward = () => {
   const [totalPages, setTotalPages] = useState(10);
   const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
+  const [isDesignDialogOpen, setIsDesignDialogOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [formItemData, setFormItemData] = useState<IItem>({
+    itemID: "",
+    designNo: "",
+    itemName: "",
+    vendorID: "",
+    vendorName: "",
+    itemPhoto: "",
+    manufacturingCost: 0,
+    sellingPrice: 0,
+    isActive: true,
+    createdAt: ""
+  });
   const [formData, setFormData] = useState<IInward>({
     inwardID: "",
     vendorID: "",
@@ -120,6 +137,77 @@ const Inward = () => {
     });
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormItemData((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleitemSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    e.currentTarget.reset();
+
+    additemMutation.mutate({
+      itemID: formItemData.itemID,
+      designNo: formItemData.designNo,
+      itemName: formItemData.itemName,
+      vendorID: formItemData.vendorID,
+      itemPhoto: formItemData.itemPhoto,
+      manufacturingCost: formItemData.manufacturingCost,
+      sellingPrice: formItemData.sellingPrice,
+      isActive: true
+    })
+
+  }
+
+  const resetFormItemData = () => {
+    setFormItemData({
+      itemID: "",
+      designNo: "",
+      itemName: "",
+      vendorID: "",
+      vendorName: "",
+      itemPhoto: "",
+      manufacturingCost: 0,
+      sellingPrice: 0,
+      isActive: true,
+      createdAt: ""
+    })
+  }
+
+  const additemMutation = useAddItem({
+    onSuccess: (res: IResponseModel) => {
+      if (res.statusCode === 200 || 201) {
+        setIsDesignDialogOpen(false);
+        getItemsDropDownList()
+        resetFormItemData();
+        toast({
+          title: "Item Added",
+          description: res.statusMessage,
+          variant: "default",
+        });
+        setLoading(false);
+      }
+    },
+    onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+      setIsDesignDialogOpen(false);
+      setLoading(false);
+      toast({
+        title: "Error occurred",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
+  })
+
   const removeItem = (index: number) => {
     const updatedDetails = formData.details.filter((_, i) => i !== index);
     setFormData({ ...formData, details: updatedDetails });
@@ -176,6 +264,7 @@ const Inward = () => {
   });
 
   const getInwardList = (value: string) => {
+    setLoading(true);
     getInwardsMutation.mutate({ searchFilter: value, pageNumber: pageNumber.current, pageSize: pageSize });
   }
   const getInwardsMutation = useGetInwards({
@@ -183,6 +272,7 @@ const Inward = () => {
       if (res.statusCode === 200) {
         setInwardItems(res.data.inwards);
         setTotalPages(Math.ceil(res.data.totalCount / pageSize));
+        setLoading(false);
       }
     },
     onError: (err: any) => {
@@ -191,7 +281,7 @@ const Inward = () => {
         err?.response?.data?.message ||
         err?.message ||
         "Something went wrong";
-
+      setLoading(false);
       toast({
         title: "Error occurred",
         description: errorMsg,
@@ -371,7 +461,7 @@ const Inward = () => {
                   <Combobox
                     options={vendors.map((x: any) => ({
                       value: x.vendorID,
-                      label: x.vendorName,
+                      label: `${x.vendorName}${x.mobileNo ? ` - ${x.mobileNo}` : ''}`,
                     }))}
                     onValueChange={(val) => setFormData({ ...formData, vendorID: val })}
                     placeholder="Select vendor"
@@ -469,10 +559,22 @@ const Inward = () => {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <Label className="text-lg font-semibold">Item Details</Label>
-                  <Button onClick={addItem} variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
-                    <Plus className="h-4 w-4" />
-                    Add Item
-                  </Button>
+                  <div className="flex gap-2">
+                    <AddDesignDialog
+                      open={isDesignDialogOpen}
+                      setOpen={setIsDesignDialogOpen}
+                      vendors={vendors}
+                      formItemData={formItemData}
+                      handleChange={handleChange}
+                      handleSubmit={handleitemSubmit}
+                      resetFormItemData={resetFormItemData}
+                      setFormItemData={setFormItemData}
+                    />
+                    <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="border border-border rounded-lg overflow-hidden">
@@ -502,6 +604,9 @@ const Inward = () => {
                                 searchPlaceholder="Search design..."
                                 value={item.itemID}
                                 onValueChange={(val) => handleItemChange(index, "itemID", val)}
+                                onAddNew={() => {
+                                  setIsDesignDialogOpen(true);
+                                }}
                               />
                               {validationErrors[`item_${index}_itemID`] && (
                                 <p className="text-red-500 text-xs mt-1">
@@ -700,7 +805,9 @@ const Inward = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            {loading ? (
+              <Loader size={40} fullScreen={true} text="Loading inwards..." color="text-blue-500" />
+            ) : (<><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Vendor</TableHead>
@@ -743,12 +850,14 @@ const Inward = () => {
                 ))}
               </TableBody>
             </Table>
-            <Pagination
-              totalCount={totalPages}
-              currentPage={pageNumber.current}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-            />
+              <Pagination
+                totalCount={totalPages}
+                currentPage={pageNumber.current}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+              />
+            </>
+            )}
             <Dialog open={isItemsDialogOpen} onOpenChange={setIsItemsDialogOpen}>
               <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
@@ -906,8 +1015,6 @@ const Inward = () => {
         </CardContent>
       </Card>
     </div>
-
-
   );
 };
 

@@ -16,13 +16,17 @@ import { useGetPartiesWithoutFilter } from "@/services/party/Party.Service";
 import { IResponseModel } from "@/interfaces/ResponseModel";
 import { IPartyDropdown } from "@/interfaces/party/Party";
 import { useToast } from "@/hooks/use-toast";
-import { IItemDropDownList } from "@/interfaces/item/Item";
+import { IItem, IItemDropDownList } from "@/interfaces/item/Item";
 import { IOutward, IOutwardBillRes } from "@/interfaces/outward/Outward";
 import { useAddOutward, useGetOutwards, useDeleteOutward } from "@/services/outward/Outward.Service";
 import { Pagination } from "@/components/ui/pagination";
 import { Loader } from "@/components/ui/loader";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import * as Form from "@radix-ui/react-form";
+import { IVendorDropdown } from "@/interfaces/vendor/Vendor";
+import { useGetVendorsWithoutFilter } from "@/services/vendor/Vendor.Service";
+import AddDesignDialog from "@/pages/common/AddDesignDialog";
+import { useAddItem } from "@/services/item/Item.Service";
 
 const Outward = () => {
   const [open, setOpen] = useState(false);
@@ -39,6 +43,20 @@ const Outward = () => {
   const [totalPages, setTotalPages] = useState(10);
   const [selectedBill, setSelectedBill] = useState(null);
   const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
+  const [isDesignDialogOpen, setIsDesignDialogOpen] = useState(false);
+  const [vendors, setVendors] = useState<IVendorDropdown[]>([]);
+  const [formItemData, setFormItemData] = useState<IItem>({
+    itemID: "",
+    designNo: "",
+    itemName: "",
+    vendorID: "",
+    vendorName: "",
+    itemPhoto: "",
+    manufacturingCost: 0,
+    sellingPrice: 0,
+    isActive: true,
+    createdAt: ""
+  });
   const [formData, setFormData] = useState<IOutward>({
     billID: "",
     partyID: "",
@@ -73,6 +91,7 @@ const Outward = () => {
   useEffect(() => {
     getpartiesDropDownList();
     getItemsDropDownList();
+    getvendorsDropDownList();
   }, [])
 
   useEffect(() => {
@@ -84,11 +103,49 @@ const Outward = () => {
     }
   }, [search]);
 
+  const resetFormItemData = () => {
+    setFormItemData({
+      itemID: "",
+      designNo: "",
+      itemName: "",
+      vendorID: "",
+      vendorName: "",
+      itemPhoto: "",
+      manufacturingCost: 0,
+      sellingPrice: 0,
+      isActive: true,
+      createdAt: ""
+    })
+  }
   const onSearch = (value: string) => {
     pageNumber.current = 1;
     setSearch(value);
   }
 
+  const getvendorsDropDownList = () => {
+    getVendorsMutation.mutate({});
+  }
+
+  const getVendorsMutation = useGetVendorsWithoutFilter({
+    onSuccess: (res: IResponseModel) => {
+      if (res.statusCode === 200) {
+        setVendors(res.data)
+      }
+    },
+    onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
+      toast({
+        title: "Error occurred",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
+  })
 
   const getOutWardList = (value: string) => {
     setLoading(true);
@@ -150,7 +207,10 @@ const Outward = () => {
   const getItemsMutation = useGetItemsDropDownList({
     onSuccess: (res: IResponseModel) => {
       if (res.statusCode === 200) {
+        const formattedData = res.data.map((i) => {
+        })
         setItems(res.data);
+
       }
     },
     onError: (err: any) => {
@@ -250,6 +310,9 @@ const Outward = () => {
       details: updatedDetails,
       totalAmount: newTotal,
     });
+    if (value === "add-new") {
+      setIsDesignDialogOpen(true);
+    }
   };
 
 
@@ -288,6 +351,49 @@ const Outward = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const handleitemSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.currentTarget.reset();
+    additemMutation.mutate({
+      itemID: formItemData.itemID,
+      designNo: formItemData.designNo,
+      itemName: formItemData.itemName,
+      vendorID: formItemData.vendorID,
+      itemPhoto: formItemData.itemPhoto,
+      manufacturingCost: formItemData.manufacturingCost,
+      sellingPrice: formItemData.sellingPrice,
+      isActive: true
+    })
+
+  }
+
+  const additemMutation = useAddItem({
+    onSuccess: (res: IResponseModel) => {
+      if (res.statusCode === 200 || 201) {
+        setIsDesignDialogOpen(false);
+        getItemsDropDownList()
+        resetFormItemData();
+        toast({
+          title: "Item Added",
+          description: res.statusMessage,
+          variant: "default",
+        });
+      }
+    },
+    onError: (err: any) => {
+      const errorMsg =
+        err?.response?.data?.statusMessage ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+      setIsDesignDialogOpen(false);
+      toast({
+        title: "Error occurred",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
+  })
 
   const handleSubmit = () => {
     if (!validateForm()) return;
@@ -403,6 +509,15 @@ const Outward = () => {
     return formData.details.reduce((acc, item) => acc + (item.quantity * item.price), 0);
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormItemData((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+
 
   return (
     <div>
@@ -440,7 +555,7 @@ const Outward = () => {
                   <Combobox
                     options={parties.map((party) => ({
                       value: party.partyID,
-                      label: party.partyName,
+                      label: `${party.partyName}${party.mobileNo ? ` - ${party.mobileNo}` : ''}`,
                     }))}
                     onValueChange={(val) => setFormData({ ...formData, partyID: val })}
                     placeholder="Select party"
@@ -521,10 +636,22 @@ const Outward = () => {
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <Label className="text-base sm:text-lg font-semibold">Item Details</Label>
-                  <Button onClick={addItem} variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
-                    <Plus className="h-4 w-4" />
-                    Add Item
-                  </Button>
+                  <div className="flex gap-2">
+                    <AddDesignDialog
+                      open={isDesignDialogOpen}
+                      setOpen={setIsDesignDialogOpen}
+                      vendors={vendors}
+                      formItemData={formItemData}
+                      handleChange={handleChange}
+                      handleSubmit={handleitemSubmit}
+                      resetFormItemData={resetFormItemData}
+                      setFormItemData={setFormItemData}
+                    />
+                    <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="border border-border rounded-lg overflow-hidden">
@@ -553,6 +680,9 @@ const Outward = () => {
                                 searchPlaceholder="Search design..."
                                 value={item.itemID}
                                 onValueChange={(val) => handleItemChange(index, "itemID", val)}
+                                onAddNew={() => {
+                                  setIsDesignDialogOpen(true);
+                                }}
                               />
                               {validationErrors[`item_${index}_itemID`] && (
                                 <p className="text-red-500 text-xs mt-1">

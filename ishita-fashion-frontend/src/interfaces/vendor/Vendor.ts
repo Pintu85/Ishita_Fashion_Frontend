@@ -10,4 +10,5 @@ export interface IVendor {
 export interface IVendorDropdown {
     vendorID: string;
     vendorName: string;
+    mobileNo:string;
 }

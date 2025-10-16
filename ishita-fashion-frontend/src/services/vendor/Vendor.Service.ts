@@ -40,7 +40,7 @@ export const useDeleteVendor = (options?: UseMutationOptions<any, any, any, any>
 export const useGetVendorsWithoutFilter = (options?: UseMutationOptions<any, any, any, any>) => {
     return useMutation({
         mutationFn: async () => {
-            return await get("vendor/get-all");
+            return await get("vendor/get-vendors-dropdown-list");
         },
         ...options
     })
