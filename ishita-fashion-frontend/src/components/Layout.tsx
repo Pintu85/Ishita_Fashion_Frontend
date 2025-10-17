@@ -33,7 +33,7 @@ const menuItems = [
     { icon: ShoppingCart, label: "Outward/Sale", path: "/outward" },
     // { icon: Wallet, label: "Vendor Payment", path: "/vendor-payment" },
     // { icon: Wallet, label: "Payment Received", path: "/payment-received" },
-    // { icon: FileText, label: "Reports", path: "/reports" },
+    { icon: FileText, label: "Reports", path: "/reports" },
     { icon: Users, label: "Vendor Master", path: "/vendors" },
     { icon: Store, label: "Party Master", path: "/parties" },
     { icon: ShoppingBag, label: "Item Master", path: "/items" },
