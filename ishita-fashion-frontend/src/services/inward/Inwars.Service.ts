@@ -42,3 +42,12 @@ export const useDeleteInward = (options?: UseMutationOptions<any, any, any, any>
         ...options
     })
 }
+
+export const useGetInwardDropdownList = (options?: UseMutationOptions<any, any, any, any>) => {
+    return useMutation({
+        mutationFn: async () => {
+            return await get("inward/get-inward-dropdown-list");
+        },
+        ...options
+    })
+}

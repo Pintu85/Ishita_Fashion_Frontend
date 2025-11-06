@@ -39,9 +39,19 @@ export interface InwardItem {
   price: number;
 }
 
-export interface IvendorPayments{
+export interface IvendorPayments {
   vendorPaymentID: string;
   amountPaid: number;
   paidDate: string;
   remarks: string;
+}
+
+export interface IInwardDropdown {
+  inwardID: string;
+  billNo: string;
+  challanNo: string;
+  totalAmount: number;
+  dueAmount: number;
+  totalPurchaseAmount: number;
+  amountPaid: number;
 }

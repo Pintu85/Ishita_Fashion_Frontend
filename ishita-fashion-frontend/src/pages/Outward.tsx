@@ -569,31 +569,32 @@ const Outward = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="date">Bill Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                        {date ? format(date, "dd MMM yyyy") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(d) => {
-                          setDate(d);
-                          setFormData({ ...formData, billDate: d ? d.toISOString() : "" });
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div
+                    className="relative cursor-pointer"
+                  >
+                    <input
+                      id="date"
+                      type="date"
+                      value={date ? format(date, "yyyy-MM-dd") : ""}
+                      onChange={(e) => {
+                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                        setDate(newDate);
+                        setFormData({ ...formData, billDate: newDate ? newDate.toISOString() : "" });
+                      }}
+                      className={cn(
+                        "flex h-10 w-full rounded-md border border-input bg-background pr-10 py-2 text-sm ring-offset-background cursor-pointer",
+                        "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                        "placeholder:text-muted-foreground",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        "disabled:cursor-not-allowed disabled:opacity-50",
+                        !date && "text-muted-foreground",
+                        "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      )}
+                      style={{ paddingLeft: '0.5rem' }}
+                    />
+                    <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+                  </div>
                   {validationErrors.billDate && (
                     <p className="text-red-500 text-sm">{validationErrors.billDate}</p>
                   )}
@@ -809,43 +810,36 @@ const Outward = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="payment-date">Received Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="payment-date"
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formData.billPaymentRequest?.receivedDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                            {formData.billPaymentRequest?.receivedDate
-                              ? format(new Date(formData.billPaymentRequest.receivedDate), "dd MMM yyyy")
-                              : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={
-                              formData.billPaymentRequest?.receivedDate
-                                ? new Date(formData.billPaymentRequest.receivedDate)
-                                : undefined
-                            }
-                            onSelect={(d) => {
-                              setFormData({
-                                ...formData,
-                                billPaymentRequest: {
-                                  ...formData.billPaymentRequest,
-                                  receivedDate: d ? d.toISOString().split("T")[0] : "",
-                                },
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                      <div className="relative cursor-pointer">
+                        <input
+                          id="payment-date"
+                          type="date"
+                          max={new Date().toISOString().split('T')[0]}
+                          value={formData.billPaymentRequest?.receivedDate || ""}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              billPaymentRequest: {
+                                ...formData.billPaymentRequest,
+                                receivedDate: e.target.value,
+                              },
+                            });
+                          }}
+                          className={cn(
+                            "flex h-10 w-full rounded-md border border-input bg-background pr-10 py-2 text-sm ring-offset-background cursor-pointer",
+                            "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                            "placeholder:text-muted-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            "disabled:cursor-not-allowed disabled:opacity-50",
+                            !formData.billPaymentRequest?.receivedDate && "text-muted-foreground",
+                            "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          )}
+                          style={{ paddingLeft: '0.5rem' }}
+                        />
+                        <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+                      </div>
+                    </div>  
                   </div>
 
                   {/* Notes/Remarks */}

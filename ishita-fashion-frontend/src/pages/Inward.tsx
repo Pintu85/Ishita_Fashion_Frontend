@@ -432,6 +432,7 @@ const Inward = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Inward of Material
           </h1>
+
           <p className="text-muted-foreground mt-1">
             Record material received from vendors
           </p>
@@ -476,31 +477,32 @@ const Inward = () => {
                 {/* Date */}
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                        {date ? format(date, "dd MMM yyyy") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(d) => {
-                          setDate(d);
-                          setFormData({ ...formData, inwardDate: d?.toISOString() || "" });
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div
+                    className="relative cursor-pointer"
+                  >
+                    <input
+                      id="date"
+                      type="date"
+                      value={date ? format(date, "yyyy-MM-dd") : ""}
+                      onChange={(e) => {
+                        const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                        setDate(newDate);
+                        setFormData({ ...formData, inwardDate: newDate?.toISOString() || "" });
+                      }}
+                      className={cn(
+                        "flex h-10 w-full rounded-md border border-input bg-background pr-10 py-2 text-sm ring-offset-background cursor-pointer",
+                        "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                        "placeholder:text-muted-foreground",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        "disabled:cursor-not-allowed disabled:opacity-50",
+                        !date && "text-muted-foreground",
+                        "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      )}
+                      style={{ paddingLeft: '0.5rem' }}
+                    />
+                    <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+                  </div>
                   {validationErrors.inwardDate && (
                     <p className="text-red-500 text-sm">{validationErrors.inwardDate}</p>
                   )}
@@ -725,39 +727,32 @@ const Inward = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="payment-date">Received Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="payment-date"
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formData.paidDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                            {formData.paidDate
-                              ? format(new Date(formData.paidDate), "dd MMM yyyy")
-                              : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={
-                              formData.paidDate
-                                ? new Date(formData.paidDate)
-                                : undefined
-                            }
-                            onSelect={(d) => {
-                              setFormData({
-                                ...formData,
-                                paidDate: d ? d.toISOString().split("T")[0] : "",
-                              });
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <div className="relative cursor-pointer">
+                        <input
+                          id="payment-date"
+                          type="date"
+                          max={new Date().toISOString().split('T')[0]}
+                          value={formData.paidDate || ""}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              paidDate: e.target.value,
+                            });
+                          }}
+                          className={cn(
+                            "flex h-10 w-full rounded-md border border-input bg-background pr-10 py-2 text-sm ring-offset-background cursor-pointer",
+                            "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                            "placeholder:text-muted-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            "disabled:cursor-not-allowed disabled:opacity-50",
+                            !formData.paidDate && "text-muted-foreground",
+                            "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          )}
+                          style={{ paddingLeft: '0.5rem' }}
+                        />
+                        <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                       
+                      </div>
                     </div>
                   </div>
 
@@ -792,7 +787,8 @@ const Inward = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+      )
+      }
 
       <Card>
         <CardHeader>
@@ -1014,7 +1010,7 @@ const Inward = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 };
 

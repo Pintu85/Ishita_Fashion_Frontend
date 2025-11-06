@@ -269,6 +269,202 @@ const Reports = () => {
     });
   };
 
+  // Export functions
+  const convertToCSV = (data: any[], headers: string[]) => {
+    const csvRows = [];
+
+    // Add headers
+    csvRows.push(headers.join(','));
+
+    // Add data rows
+    for (const row of data) {
+      const values = headers.map(header => {
+        const value = row[header] || '';
+        // Escape quotes and wrap in quotes if contains comma
+        const escaped = ('' + value).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(','));
+    }
+
+    return csvRows.join('\n');
+  };
+
+  const downloadCSV = (csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExport = () => {
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+
+      switch (activeTab) {
+        case 'party-sales':
+          if (partiesReport.length === 0) {
+            toast({
+              title: "No data to export",
+              description: "There are no records to export",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const partyData = partiesReport.map(party => ({
+            'Party Name': party.partyName,
+            'Total Bills': party.totalBillCount || 0,
+            'Total Amount': party.totalBilledAmount || 0,
+            'Paid': party.totalAmountReceived || 0,
+            'Due': party.totalDue || 0,
+          }));
+
+          const partyCSV = convertToCSV(
+            partyData,
+            ['Party Name', 'Total Bills', 'Total Amount', 'Paid', 'Due']
+          );
+          downloadCSV(partyCSV, `Party_Sales_Report_${currentDate}.csv`);
+
+          toast({
+            title: "Export Successful",
+            description: "Party sales report has been exported",
+          });
+          break;
+
+        case 'vendor-inward':
+          if (vendorinwardsReport.length === 0) {
+            toast({
+              title: "No data to export",
+              description: "There are no records to export",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const vendorData = vendorinwardsReport.map(vendor => ({
+            'Vendor Name': vendor.vendorName,
+            'Quantity': vendor.totalInwardQuantity,
+            'Total Amount': vendor.totalPurchasedAmount,
+            'Paid': vendor.totalAmountPaid,
+            'Due': vendor.totalDue,
+          }));
+
+          const vendorCSV = convertToCSV(
+            vendorData,
+            ['Vendor Name', 'Quantity', 'Total Amount', 'Paid', 'Due']
+          );
+          downloadCSV(vendorCSV, `Vendor_Inward_Report_${currentDate}.csv`);
+
+          toast({
+            title: "Export Successful",
+            description: "Vendor inward report has been exported",
+          });
+          break;
+
+        case 'stock':
+          if (stockReportData.length === 0) {
+            toast({
+              title: "No data to export",
+              description: "There are no records to export",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const stockData = stockReportData.map(stock => ({
+            'Design No': stock.designNo,
+            'Design Name': stock.designNo,
+            'Quantity': stock.totalQuantity,
+            'Cost/Piece': stock.cost,
+            'Total Value': stock.totalValue,
+          }));
+
+          const stockCSV = convertToCSV(
+            stockData,
+            ['Design No', 'Design Name', 'Quantity', 'Cost/Piece', 'Total Value']
+          );
+          downloadCSV(stockCSV, `Stock_Report_${currentDate}.csv`);
+
+          toast({
+            title: "Export Successful",
+            description: "Stock report has been exported",
+          });
+          break;
+
+        case 'dashboard':
+          if (!dashboardData) {
+            toast({
+              title: "No data to export",
+              description: "There is no dashboard data to export",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const dashboardExport = [
+            {
+              'Metric': 'Sales Bills Created',
+              'Count': dashboardData.totalBillCount,
+              'Amount': dashboardData.totalBillAmount,
+            },
+            {
+              'Metric': 'Inward Entries',
+              'Count': dashboardData.totalInwardCount,
+              'Amount': dashboardData.totalInwardAmount,
+            },
+            {
+              'Metric': 'New Parties Added',
+              'Count': dashboardData.totalPartyCount,
+              'Amount': '-',
+            },
+            {
+              'Metric': 'Payments Received',
+              'Count': '-',
+              'Amount': dashboardData.billPaymentAmount,
+            },
+            {
+              'Metric': 'Vendor Payments Made',
+              'Count': '-',
+              'Amount': dashboardData.vendorPayment,
+            },
+          ];
+
+          const dashboardCSV = convertToCSV(
+            dashboardExport,
+            ['Metric', 'Count', 'Amount']
+          );
+          downloadCSV(dashboardCSV, `Dashboard_Report_${currentDate}.csv`);
+
+          toast({
+            title: "Export Successful",
+            description: "Dashboard report has been exported",
+          });
+          break;
+
+        default:
+          toast({
+            title: "Export Failed",
+            description: "Unknown report type",
+            variant: "destructive",
+          });
+      }
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "An error occurred while exporting data",
+        variant: "destructive",
+      });
+      console.error('Export error:', error);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -291,7 +487,12 @@ const Reports = () => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <CardTitle className="text-lg sm:text-xl">Party-wise Sales Report</CardTitle>
-                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={handleExport}
+                >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
@@ -414,7 +615,12 @@ const Reports = () => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <CardTitle className="text-lg sm:text-xl">Vendor-wise Inward Report</CardTitle>
-                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={handleExport}
+                >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
@@ -502,7 +708,7 @@ const Reports = () => {
                   <TableBody>
 
                     {vendorinwardsReport && vendorinwardsReport.length > 0 ? vendorinwardsReport.map((vendor, index) => (
-                      <TableRow>
+                      <TableRow key={index}>
                         <TableCell className="font-medium">{vendor.vendorName}</TableCell>
                         <TableCell>{vendor.totalInwardQuantity}</TableCell>
                         <TableCell>{vendor.totalPurchasedAmount}</TableCell>
@@ -535,7 +741,12 @@ const Reports = () => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <CardTitle className="text-lg sm:text-xl">Stock Report</CardTitle>
-                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={handleExport}
+                >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
@@ -588,9 +799,20 @@ const Reports = () => {
         <TabsContent value="dashboard">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-semibold">
-                Today's Activity Dashboard
-              </CardTitle>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-lg sm:text-xl font-semibold">
+                  Today's Activity Dashboard
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={handleExport}
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </div>
             </CardHeader>
 
             <CardContent>

@@ -166,6 +166,9 @@ function toast({ ...props }: Toast) {
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
+  // Register the listener once on mount and remove on unmount.
+  // Using an empty dependency array ensures the hook order/size remains stable
+  // across renders and avoids re-registering the listener on every state change.
   React.useEffect(() => {
     listeners.push(setState);
     return () => {
@@ -174,7 +177,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

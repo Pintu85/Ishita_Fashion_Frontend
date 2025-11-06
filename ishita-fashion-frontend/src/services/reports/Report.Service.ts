@@ -31,7 +31,15 @@ return useMutation({
 export const useGetDashboardReport = (options: UseMutationOptions<any, any, any, any> ) => { 
 return useMutation({
     mutationFn: async (data: any) => {
-        return await get("reports/get-dashboard?searchFilter=" + data.searchFilter + "&pageNumber=" + data.pageNumber + "&pageSize=" + data.pageSize + "&fromDate=" + data.fromDate + "&toDate=" + data.toDate);
+        if (data && (data.fromDate || data.toDate)) {
+                const params = new URLSearchParams();
+                if (data.fromDate) params.append("fromDate", data.fromDate);
+                if (data.toDate) params.append("toDate", data.toDate);
+                return await get(`reports/get-dashboard?${params.toString()}`);
+            }
+
+            // No dates: call simple GET (backend defaults to today)
+            return await get("reports/get-dashboard");
     },
     ...options
 })
